@@ -1,0 +1,46 @@
+# indicators/technical_indicators.py
+
+import pandas as pd
+
+class TechnicalIndicators:
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+
+    def rsi(self, period=14):
+        delta = self.df['close'].diff()
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
+
+        avg_gain = gain.rolling(window=period).mean()
+        avg_loss = loss.rolling(window=period).mean()
+
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+        self.df['rsi'] = rsi
+        return self.df
+
+    def sma(self, period=14):
+        self.df[f'sma_{period}'] = self.df['close'].rolling(window=period).mean()
+        return self.df
+
+    def ema(self, period=14):
+        self.df[f'ema_{period}'] = self.df['close'].ewm(span=period, adjust=False).mean()
+        return self.df
+
+    def macd(self):
+        ema12 = self.df['close'].ewm(span=12, adjust=False).mean()
+        ema26 = self.df['close'].ewm(span=26, adjust=False).mean()
+        macd_line = ema12 - ema26
+        signal = macd_line.ewm(span=9, adjust=False).mean()
+
+        self.df['macd'] = macd_line
+        self.df['macd_signal'] = signal
+        return self.df
+
+    def bollinger(self, period=20):
+        sma = self.df['close'].rolling(period).mean()
+        std = self.df['close'].rolling(period).std()
+
+        self.df['bb_upper'] = sma + (std * 2)
+        self.df['bb_lower'] = sma - (std * 2)
+        return self.df
