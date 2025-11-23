@@ -3,7 +3,8 @@
 import pandas as pd
 
 class TechnicalIndicators:
-    def __init__(self, df: pd.DataFrame):
+    from pandas import DataFrame
+def __init__(self, df: DataFrame):
         self.df = df
 
     def rsi(self, period=14):
