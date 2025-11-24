@@ -1,15 +1,21 @@
-# storage/signal_storage.py
+from .database import db
 
-# Temporary in-memory storage for generated signals.
-# Later you can connect this to a database if you want.
+class SignalStorage:
+    @staticmethod
+    def save_signal(pair, direction, entry_price):
+        db.query("""
+        INSERT INTO signals (pair, direction, entry_price)
+        VALUES (?, ?, ?)
+        """, (pair, direction, entry_price))
 
-latest_signals = {}
+    @staticmethod
+    def get_latest_signal():
+        result = db.query("""
+        SELECT * FROM signals ORDER BY id DESC LIMIT 1
+        """)
+        return result.fetchone()
 
-def save_signal(asset, signal_data):
-    latest_signals[asset] = signal_data
-
-def get_signal(asset):
-    return latest_signals.get(asset)
-
-def get_all_signals():
-    return latest_signals
+    @staticmethod
+    def get_all():
+        result = db.query("SELECT * FROM signals ORDER BY id DESC")
+        return result.fetchall()
