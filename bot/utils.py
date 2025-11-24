@@ -1,37 +1,43 @@
-# utils.py
-
-from datetime import datetime
-
-def format_signal_message(result: dict) -> str:
-    """
-    Format the AI signal output into a clean message.
-    """
-
-    direction_icon = "⬆️ BUY" if result["direction"] == "BUY" else "⬇️ SELL"
-
-    confidence = result["confidence"]
-    if confidence >= 80:
-        conf_type = "🟢 Strong"
-    elif confidence >= 60:
-        conf_type = "🟡 Medium"
-    else:
-        conf_type = "🔴 Weak"
-
-    return (
-        "🔮 <b>AI MARKET SIGNAL</b>\n\n"
-        f"📌 <b>Pair:</b> {result['pair']}\n"
-        f"🧭 <b>Direction:</b> {direction_icon}\n"
-        f"📊 <b>Confidence:</b> {confidence}% ({conf_type})\n\n"
-        f"📈 <b>Indicator Breakdown:</b>\n"
-        f"• RSI: {result['rsi']}\n"
-        f"• EMA Trend: {result['ema_trend']}\n"
-        f"• MACD: {result['macd']}\n"
-        f"• ADX: {result['adx']}\n\n"
-        f"📝 <b>Analysis:</b>\n"
-        f"{result['reason']}\n\n"
-        f"⏱ <b>Generated:</b> {current_time()}\n"
-    )
-
+# bot/utils.py
+import datetime
 
 def current_time():
-    return datetime.now().strftime("%H:%M:%S")
+    """Returns current time in HH:MM format."""
+    return datetime.datetime.now().strftime("%H:%M")
+
+def entry_time_after(minutes=1):
+    """Returns future entry time after X minutes in HH:MM format."""
+    t = datetime.datetime.now() + datetime.timedelta(minutes=minutes)
+    return t.strftime("%H:%M")
+
+def arrow(direction):
+    """Return UP/DOWN icons."""
+    return "⬆️" if direction == "UP" else "⬇️"
+
+def clean_asset_name(asset: str):
+    """Format names like 'EURUSD_otc' → 'EUR/USD'."""
+    asset = asset.replace("_", "").replace("otc", "")
+    return f"{asset[0:3]}/{asset[3:6]}"
+
+def format_signal_message(asset, direction, strength, reason):
+    """
+    Build final signal message with:
+    - asset
+    - direction + arrow
+    - time
+    - entry time
+    - strength
+    - reason
+    """
+
+    return (
+        f"📊 *AUTO SIGNAL*\n"
+        f"────────────────────\n"
+        f"🕒 Time: *{current_time()}*\n"
+        f"⌛ Entry Time: *{entry_time_after(1)}*\n"
+        f"💹 Asset: *{clean_asset_name(asset)}*\n"
+        f"📈 Direction: *{direction} {arrow(direction)}*\n"
+        f"🔥 Strength: *{strength}%*\n\n"
+        f"📝 Reason:\n"
+        f"{reason}"
+    )
