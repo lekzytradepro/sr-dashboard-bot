@@ -28,12 +28,13 @@ async def send_signal_flow(message: Message, bot: Bot, pair: str):
     # generate signal
     signal = signal_engine.generate_signal(pair)
 
-    sender = SignalSender(bot)
-    await sender.send_signal(
-        user_id=message.from_user.id,
-        signal=signal,
-        pair=pair
-    )
+    
+   sender = SignalSender(bot, user_db=user_storage)
+await sender.send_signal(
+    user_id=message.from_user.id,
+    signal=signal,
+    pair=pair
+) 
 
 
 # ===========================
