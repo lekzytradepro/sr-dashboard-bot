@@ -1,27 +1,31 @@
 # bot/main.py
 
 import asyncio
+import logging
 from aiogram import Bot, Dispatcher
-from bot.handlers import router
-from core.auto_engine import AutoEngine
-import os
 
-TOKEN = os.getenv("BOT_TOKEN")
+from config.settings import BOT_TOKEN
+from bot.handlers import router as handlers_router
+from core.scheduler import AutoEngine
+
+
+logging.basicConfig(level=logging.INFO)
+
 
 async def main():
-    bot = Bot(token=TOKEN)
+    bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
     dp = Dispatcher()
 
     # Register handlers
-    dp.include_router(router)
+    dp.include_router(handlers_router)
 
-    # Start AUTO MODE in background
-    auto_engine = AutoEngine(bot, interval=180)  # 180 sec = 3 minutes
-    asyncio.create_task(auto_engine.start())
+    # Start auto signal engine (background task)
+    auto_engine = AutoEngine(bot)
+    asyncio.create_task(auto_engine.start())  # runs forever in background
 
-    print("BOT IS RUNNING...")
+    print("🚀 Bot is running...")
 
-    # Start bot polling
+    # Start bot
     await dp.start_polling(bot)
 
 
