@@ -81,17 +81,37 @@ async def broadcast_message(bot: Bot, users: list[int], text: str):
 
 # Simple in-memory user database simulation
 user_db = {
-    "allowed_users": set(),
-    "subscriptions": {}
+    "users": {},  # user_id: {"name": "", "active": True}
+    "allowed_users": set()
 }
 
-def add_user(user_id: int):
-    """Add user to allowed users list"""
+def user_exists(user_id: int) -> bool:
+    """Check if user exists in database"""
+    return user_id in user_db["users"]
+
+def add_user(user_id: int, full_name: str):
+    """Add user to database"""
+    user_db["users"][user_id] = {
+        "name": full_name,
+        "active": True  # Auto-activate new users
+    }
     user_db["allowed_users"].add(user_id)
 
-def remove_user(user_id: int):
-    """Remove user from allowed users list"""
-    user_db["allowed_users"].discard(user_id)
+def is_user_active(user_id: int) -> bool:
+    """Check if user subscription is active"""
+    if user_id in user_db["users"]:
+        return user_db["users"][user_id]["active"]
+    return False
+
+def activate_user(user_id: int):
+    """Activate user subscription"""
+    if user_id in user_db["users"]:
+        user_db["users"][user_id]["active"] = True
+
+def deactivate_user(user_id: int):
+    """Deactivate user subscription"""
+    if user_id in user_db["users"]:
+        user_db["users"][user_id]["active"] = False
 
 def is_user_allowed(user_id: int) -> bool:
     """Check if user is allowed to use the bot"""
