@@ -1,38 +1,42 @@
 # bot/signal_sender.py
 
-from aiogram import Bot
-from datetime import datetime
-from storage.signal_storage import SignalStorage
+import asyncio
+from ai_engine import AIEngine
+from data_feed import MarketData
+from utils import format_signal_message
+
 
 class SignalSender:
-    def __init__(self, bot: Bot):
+    def __init__(self, bot):
         self.bot = bot
-        self.storage = SignalStorage()
+        self.engine = AIEngine()
+        self.data = MarketData()
 
-    async def send_signal(self, user_id: int, signal: str, pair: str):
-        """
-        Sends a formatted signal to the user.
-        """
+        # Prevent spam signals
+        self.last_signal_time = 0
+        self.cooldown_seconds = 60  # 1 min between signals
 
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    async def send_signal(self, chat_id):
+        """Fetch data → generate signal → send to Telegram"""
+        candles = await self.data.get_candles()
 
-        message_text = (
-            f"📡 **SR DASHBOARD PRO SIGNAL**\n"
-            f"──────────────────────────────\n"
-            f"💹 **Pair:** {pair}\n"
-            f"📊 **Decision:** {signal}\n"
-            f"⏰ **Time:** {timestamp}\n"
-        )
+        if candles is None:
+            await self.bot.send_message(chat_id, "⚠️ Unable to fetch market data.")
+            return
 
-        # save to storage
-        self.storage.save_signal({
-            "pair": pair,
-            "signal": signal,
-            "time": timestamp
-        })
+        result = self.engine.generate_signal(candles)
 
-        await self.bot.send_message(
-            chat_id=user_id,
-            text=message_text,
-            parse_mode="Markdown"
-        )
+        text = format_signal_message(result)
+
+        await self.bot.send_message(chat_id, text)
+
+    async def auto_loop(self, chat_id):
+        """Background loop that sends signals repeatedly."""
+        while True:
+            try:
+                await self.send_signal(chat_id)
+                await asyncio.sleep(self.cooldown_seconds)
+
+            except Exception as e:
+                await self.bot.send_message(chat_id, f"⚠️ Error: {e}")
+                await asyncio.sleep(3)
