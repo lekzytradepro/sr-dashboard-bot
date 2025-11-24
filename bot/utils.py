@@ -75,6 +75,29 @@ async def broadcast_message(bot: Bot, users: list[int], text: str):
             continue
 
 
+# ------------------------- #
+#  DATABASE UTILITIES
+# ------------------------- #
+
+# Simple in-memory user database simulation
+user_db = {
+    "allowed_users": set(),
+    "subscriptions": {}
+}
+
+def add_user(user_id: int):
+    """Add user to allowed users list"""
+    user_db["allowed_users"].add(user_id)
+
+def remove_user(user_id: int):
+    """Remove user from allowed users list"""
+    user_db["allowed_users"].discard(user_id)
+
+def is_user_allowed(user_id: int) -> bool:
+    """Check if user is allowed to use the bot"""
+    return user_id in user_db["allowed_users"] or is_admin(user_id)
+
+
 def log(msg: str):
     """Simple console logger."""
     print(f"[BOT] {msg}")
