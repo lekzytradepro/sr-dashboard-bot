@@ -2,10 +2,15 @@
 
 import asyncio
 from datetime import datetime
+
 from engine.asset_detector import AssetDetector
 from core.ai_signal_engine import AISignalEngine
 from storage.user_storage import UserStorage
+from ai_engine.reason_generator import ReasonGenerator
+from ai_engine.signal_formatter import SignalFormatter
+
 from aiogram import Bot
+
 
 class SignalDispatcher:
     def __init__(self, bot: Bot):
@@ -13,10 +18,13 @@ class SignalDispatcher:
         self.detector = AssetDetector()
         self.ai_engine = AISignalEngine()
         self.user_db = UserStorage()
+        self.reason_engine = ReasonGenerator()
+        self.format_engine = SignalFormatter()
 
     async def start_auto_signals(self):
         """
-        Auto signal loop – runs forever and sends new signals when ready.
+        Auto signal loop – finds best pair, generates the AI signal,
+        builds the final message, and sends to all subscribers.
         """
         while True:
             asset = self.detector.get_best_pair()
@@ -31,17 +39,17 @@ class SignalDispatcher:
             if signal["direction"] != "NEUTRAL":
                 await self.send_to_all_users(signal)
 
-            # Delay before next signal
+            # Wait before the next signal
             await asyncio.sleep(60)
 
     async def send_to_all_users(self, signal):
-        """Send signal to all active subscribers"""
+        """Send the formatted signal to all active subscribers."""
         users = self.user_db.get_all_active_users()
 
         if not users:
             return
 
-        msg = self.format_signal(signal)
+        msg = self.build_message(signal)
 
         for user in users:
             try:
@@ -49,26 +57,19 @@ class SignalDispatcher:
             except:
                 continue
 
-    def format_signal(self, s):
+    def build_message(self, signal: dict) -> str:
         """
-        Formats signal message in a clean professional layout
+        Builds the final message using:
+        → ReasonGenerator
+        → SignalFormatter
         """
-        return f"""
-📡 <b>AI Premium Market Signal</b>
-────────────────────
-
-<b>Asset:</b> {s['asset']}
-<b>Direction:</b> {s['direction']}
-<b>Confidence:</b> {s['confidence']}%
-
-<b>Indicators:</b>
-• RSI: {s['rsi']}
-• MACD: {s['macd']}
-• Signal Line: {s['signal_line']}
-• EMA20: {s['ema20']}
-• EMA50: {s['ema50']}
-
-<b>Generated:</b> {s['timestamp']}
-
-⚠️ Always combine with your price action.
-        """
+        reason_text = self.reason_engine.build_reasons(signal)
+        formatted = self.format_engine.format(
+            pair=signal["asset"],
+            direction=signal["direction"],
+            confidence=signal["confidence"],
+            indicators=signal["indicators"],
+            reasons=reason_text,
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+        return formatted
