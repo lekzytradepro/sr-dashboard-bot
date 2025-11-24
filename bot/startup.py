@@ -1,19 +1,36 @@
 # bot/startup.py
-
-import asyncio
 from aiogram import Bot, Dispatcher
-from core.signal_dispatcher import SignalDispatcher
-from config.global_config import BOT_TOKEN
+from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 
-async def start_bot():
-    bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
-    dp = Dispatcher()
+from config.keyboards import register_keyboards
+from bot.handlers import register_handlers
+from bot.senders import register_senders
 
-    # Initialize the signal dispatcher
-    signal_system = SignalDispatcher(bot)
 
-    # Start auto signal loop
-    asyncio.create_task(signal_system.start_auto_signals())
+class BotStartup:
+    def __init__(self, token: str):
+        self.token = token
+        self.bot = None
+        self.dp = None
 
-    print("🚀 Bot is running... Auto-signal system active.")
-    return bot, dp
+    async def initialize(self):
+        """Initialize bot, dispatcher, handlers, and keyboards."""
+        self.bot = Bot(
+            token=self.token,
+            default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+        )
+        self.dp = Dispatcher()
+
+        # Register keyboards
+        register_keyboards(self.dp)
+
+        # Register handlers
+        register_handlers(self.dp)
+
+        # Register senders (signal dispatchers, scheduled tasks)
+        register_senders(self.dp, self.bot)
+
+    async def start_polling(self):
+        """Start bot polling process."""
+        await self.dp.start_polling(self.bot)
