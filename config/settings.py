@@ -4,6 +4,7 @@ from datetime import timezone
 # ========== BOT SECRET SETTINGS ==========
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
+ADMIN_IDS = [ADMIN_ID]  # Add this line - creates a list with your single admin ID
 
 # ========== TIME SETTINGS ==========
 # We ALWAYS use UTC for server stability
