@@ -1,68 +1,60 @@
 # bot/data_feed.py
 
-import requests
-import time
-
+import pandas as pd
+import aiohttp
 
 class DataFeed:
     """
-    Simple candle fetcher for any asset.
-    You can later switch to Binance, Forex, or your custom API.
+    Fetch candles for ANY asset & timeframe.
+    Works with Exnova/Quotex compatible API format.
     """
 
-    def __init__(self):
-        self.api_url = "https://api.binance.com/api/v3/klines"
+    def __init__(self, asset: str, timeframe="1m"):
+        self.asset = asset.upper()
+        self.timeframe = timeframe
 
-    def get_candles(self, symbol: str = "BTCUSDT", interval: str = "1m", limit: int = 50):
+    async def get_candles(self, limit=200):
         """
-        Fetch OHLC candle data.
-        Returns list of candles in this structure:
-        [
-            {
+        Fetch OHLC candle data from public API.
+        Returns a pandas DataFrame.
+        """
+
+        url = f"https://api.exnova.live/v1/candles?asset={self.asset}&tf={self.timeframe}&limit={limit}"
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as res:
+                    raw = await res.json()
+
+            df = pd.DataFrame(raw)
+
+            df.rename(columns={
+                "o": "open",
+                "h": "high",
+                "l": "low",
+                "c": "close",
+                "t": "timestamp"
+            }, inplace=True)
+
+            df = df.astype({
                 "open": float,
                 "high": float,
                 "low": float,
                 "close": float,
-                "volume": float,
                 "timestamp": int
-            }
-        ]
-        """
+            })
 
-        try:
-            params = {
-                "symbol": symbol,
-                "interval": interval,
-                "limit": limit
-            }
+            return df
 
-            response = requests.get(self.api_url, params=params, timeout=5)
-            data = response.json()
-
-            candles = []
-
-            for c in data:
-                candles.append({
-                    "timestamp": int(c[0]),
-                    "open": float(c[1]),
-                    "high": float(c[2]),
-                    "low": float(c[3]),
-                    "close": float(c[4]),
-                    "volume": float(c[5])
-                })
-
-            return candles
-
-        except Exception:
+        except Exception as e:
+            print("DataFeed Error:", e)
             return None
 
-    def get_latest_price(self, symbol="BTCUSDT"):
+    async def get_last_close(self):
         """
-        Fetch only the latest close price.
+        Quick helper to get only latest close price.
         """
-
-        candles = self.get_candles(symbol, "1m", 1)
-        if not candles:
+        df = await self.get_candles(limit=1)
+        if df is None or df.empty:
             return None
-
-        return candles[-1]["close"]
+        return df["close"].iloc[-1]
