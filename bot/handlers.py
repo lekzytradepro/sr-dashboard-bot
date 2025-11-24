@@ -1,68 +1,82 @@
-# bot/handlers.py
-
 from aiogram import Router, types
 from aiogram.filters import Command
-from storage.user_storage import UserStorage
-from bot.keyboards import main_menu
-from core.signal_dispatcher import SignalDispatcher
+from .keyboards import main_menu_keyboard
+import asyncio
+from datetime import datetime, timedelta
+from ai.engine import QuantumAIEngine
+from core.utils import format_signal_message, get_current_pair_time
 
 router = Router()
-user_db = UserStorage()
+SCAN_INTERVAL = 180  # 3 minutes
 
 
 @router.message(Command("start"))
 async def start_cmd(msg: types.Message):
-    user_id = msg.from_user.id
-    user_db.add_user(user_id)
-
     await msg.answer(
-        "👋 <b>Welcome to SR Dashboard AI Bot!</b>\n\n"
-        "Your account is now activated.\n"
-        "You will start receiving AI auto-signals automatically.\n\n"
-        "Use the menu below to request manual signals or settings 👇",
-        reply_markup=main_menu(),
-        parse_mode="HTML"
-    )
-
-
-@router.message(Command("help"))
-async def help_cmd(msg: types.Message):
-    await msg.answer(
-        "<b>📘 HELP MENU</b>\n\n"
-        "• /start – Activate bot\n"
-        "• Manual Signal – Get instant signal\n"
-        "• Auto Mode – Signals will be sent automatically\n\n"
-        "If you need new features, just tell me!",
+        "👋 <b>Quantum Matrix AI Bot Activated!</b>\n\n"
+        "I will automatically scan multiple forex pairs every 3 minutes.\n"
+        "Whenever a strong BUY or SELL setup appears, I'll send it immediately.\n\n"
+        "Use the menu below 👇",
+        reply_markup=main_menu_keyboard(),
         parse_mode="HTML"
     )
 
 
 @router.message(lambda m: m.text == "📈 Manual Signal")
 async def manual_signal(msg: types.Message):
-    """User requests a manual signal instantly."""
-    user_id = msg.from_user.id
+    engine = QuantumAIEngine()
+    pair = engine.get_random_pair()
 
-    dispatcher = SignalDispatcher(bot=msg.bot)
-    asset = dispatcher.detector.get_best_pair()
+    result = engine.get_signal(pair)
 
-    if asset is None:
-        await msg.answer("⚠️ No tradeable asset available right now. Try again later.")
+    if result["recommendation"] == "NEUTRAL":
+        await msg.answer("⚪ Market is not safe right now. Try again shortly.")
         return
 
-    signal = dispatcher.ai_engine.generate_signal(asset)
+    expected = (datetime.utcnow() + timedelta(minutes=3)).strftime("%H:%M:%S")
 
-    if signal["direction"] == "NEUTRAL":
-        await msg.answer("⚪ Market not safe for entry right now.")
-        return
-
-    formatted = dispatcher.format_signal(signal)
-    await msg.answer(formatted, parse_mode="HTML")
-
-
-@router.message(lambda m: m.text == "⚙️ Settings")
-async def settings_cmd(msg: types.Message):
-    await msg.answer(
-        "⚙️ <b>Settings Page</b>\n\n"
-        "More settings will be added soon.",
-        parse_mode="HTML"
+    message = format_signal_message(
+        pair=pair,
+        recommendation=result["recommendation"],
+        confidence=result["confidence"],
+        current_time=get_current_pair_time(),
+        expected_entry=expected,
+        indicators=result["indicators"]
     )
+
+    await msg.answer(message, parse_mode="Markdown")
+
+
+async def auto_scanner(bot, pairs):
+    engine = QuantumAIEngine()
+    await asyncio.sleep(3)
+
+    while True:
+        try:
+            for pair in pairs:
+                now = datetime.utcnow()
+                expected_entry = now + timedelta(minutes=3)
+
+                result = engine.get_signal(pair)
+
+                if result and result["recommendation"] != "NEUTRAL":
+                    msg = format_signal_message(
+                        pair=pair,
+                        recommendation=result["recommendation"],
+                        confidence=result["confidence"],
+                        current_time=get_current_pair_time(),
+                        expected_entry=expected_entry.strftime("%H:%M:%S"),
+                        indicators=result["indicators"]
+                    )
+
+                    await bot.send_message(
+                        chat_id="-100XXXXXXXXXXXX",  # your channel ID
+                        text=msg,
+                        parse_mode="Markdown"
+                    )
+
+            await asyncio.sleep(SCAN_INTERVAL)
+
+        except Exception as e:
+            print("Scanner error:", e)
+            await asyncio.sleep(10)
