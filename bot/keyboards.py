@@ -1,47 +1,39 @@
 # bot/keyboards.py
 
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-def main_menu():
+def menu_keyboard():
     """
-    Main menu shown after /start.
+    Main menu keyboard.
     """
     kb = [
-        [KeyboardButton(text="📈 Manual Signal")],
-        [KeyboardButton(text="⚙️ Settings")]
+        [InlineKeyboardButton(text="📊 Signals", callback_data="signals_menu")],
+        [InlineKeyboardButton(text="⚙️ Settings", callback_data="settings_menu")],
     ]
-
-    return ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True
-    )
+    return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
-def confirm_activation_kb():
+def signal_pairs_keyboard():
     """
-    Inline keyboard for subscription activation confirmation.
+    List of supported trading pairs.
+    You can add or remove pairs later.
     """
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="✅ Activate Subscription", callback_data="activate_sub")
-            ]
-        ]
-    )
+    pairs = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
+
+    kb = [[InlineKeyboardButton(text=p, callback_data=f"pair_{p}")] for p in pairs]
+
+    kb.append([InlineKeyboardButton(text="⬅️ Back", callback_data="back_menu")])
+
+    return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
-def admin_menu():
+def admin_keyboard():
     """
-    Additional inline menu for admins.
+    Admin-only options.
     """
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="📊 Force Send Signal", callback_data="admin_send_signal")
-            ],
-            [
-                InlineKeyboardButton(text="👥 View Users", callback_data="admin_users")
-            ]
-        ]
-    )
+    kb = [
+        [InlineKeyboardButton(text="📢 Broadcast", callback_data="admin_broadcast")],
+        [InlineKeyboardButton(text="⚡ Manual Signal", callback_data="admin_signal")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=kb)
