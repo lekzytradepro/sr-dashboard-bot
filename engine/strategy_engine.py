@@ -1,34 +1,55 @@
-# engine/strategy_engine.py
-
 class StrategyEngine:
-    def __init__(self, df):
-        self.df = df
+    """
+    Generates BUY / SELL / NEUTRAL direction based on
+    real technical analysis from MarketAnalyzer.
+    """
 
-    def generate_signal(self):
+    def __init__(self):
+        pass
+
+    def generate_direction(self, market):
         """
-        Simple strategy:
-        - BUY if RSI < 30 and macd > macd_signal
-        - SELL if RSI > 70 and macd < macd_signal
-        - NEUTRAL otherwise
+        Accepts market data:
+        {
+            "rsi": float,
+            "trend": float,
+            "atr": float,
+            "candle_dir": "UP" / "DOWN",
+            "volatility": float
+        }
+
+        Returns:
+            "BUY", "SELL", or "NEUTRAL"
         """
 
-        try:
-            rsi = self.df['rsi'].iloc[-1]
-            macd = self.df['macd'].iloc[-1]
-            macd_sig = self.df['macd_signal'].iloc[-1]
+        rsi = market["rsi"]
+        trend = market["trend"]
+        atr = market["atr"]
+        candle = market["candle_dir"]
+        vol = market["volatility"]
 
-            # BUY Signal
-            if rsi < 30 and macd > macd_sig:
-                return "BUY"
-
-            # SELL Signal
-            elif rsi > 70 and macd < macd_sig:
-                return "SELL"
-
-            # Otherwise NEUTRAL
-            else:
-                return "NEUTRAL"
-
-        except Exception as e:
-            print("Strategy Engine Error:", e)
+        # Reject dead markets (no volatility)
+        if atr == 0 or vol < 0.1:
             return "NEUTRAL"
+
+        # Reject unstable RSI extremes
+        if rsi < 20 or rsi > 80:
+            return "NEUTRAL"
+
+        # RSI BUY zone
+        if 35 <= rsi <= 55 and trend > 0 and candle == "UP":
+            return "BUY"
+
+        # RSI SELL zone
+        if 45 <= rsi <= 65 and trend < 0 and candle == "DOWN":
+            return "SELL"
+
+        # Trend-only conditions
+        if trend > 0.05 and candle == "UP":
+            return "BUY"
+
+        if trend < -0.05 and candle == "DOWN":
+            return "SELL"
+
+        # Default
+        return "NEUTRAL"
