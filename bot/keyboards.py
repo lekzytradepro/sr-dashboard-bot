@@ -1,7 +1,11 @@
-# bot/keyboards.py
-
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+def main_menu_keyboard():
+    """
+    Main menu keyboard (alias for menu_keyboard for compatibility).
+    This is imported by handlers.py
+    """
+    return menu_keyboard()
 
 def menu_keyboard():
     """
