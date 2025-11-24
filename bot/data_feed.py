@@ -70,3 +70,13 @@ class DataFeed:
             "close_prices": close_prices,
             "last_candle": last_candle
         }
+
+
+# ADD THIS FUNCTION - it's required by admin.py
+async def get_active_assets():
+    """
+    Get list of available trading assets.
+    This function is imported by admin.py
+    """
+    from config.settings import DEFAULT_PAIRS
+    return DEFAULT_PAIRS
