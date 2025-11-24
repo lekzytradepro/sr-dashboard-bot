@@ -1,15 +1,28 @@
-# storage/user_state.py
+from .database import db
 
-# Temporary in-memory storage for user states.
-# In production you can replace this with a DB (Redis, Mongo, SQL).
-user_states = {}
+class UserModel:
+    @staticmethod
+    def create_user(user_id, username, full_name):
+        db.query("""
+        INSERT OR IGNORE INTO users (user_id, username, full_name)
+        VALUES (?, ?, ?)
+        """, (user_id, username, full_name))
 
-def set_state(user_id, state):
-    user_states[user_id] = state
+    @staticmethod
+    def get_user(user_id):
+        result = db.query("SELECT * FROM users WHERE user_id = ?", (user_id,))
+        return result.fetchone()
 
-def get_state(user_id):
-    return user_states.get(user_id)
+    @staticmethod
+    def update_subscription(user_id, plan, expiry_date):
+        db.query("""
+        UPDATE users SET subscription_status='active', plan=?, expiry_date=?
+        WHERE user_id=?
+        """, (plan, expiry_date, user_id))
 
-def clear_state(user_id):
-    if user_id in user_states:
-        del user_states[user_id]
+    @staticmethod
+    def deactivate(user_id):
+        db.query("""
+        UPDATE users SET subscription_status='inactive', plan=NULL, expiry_date=NULL
+        WHERE user_id=?
+        """, (user_id,))
