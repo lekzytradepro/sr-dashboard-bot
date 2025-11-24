@@ -7,6 +7,9 @@ from bot.signal_sender import SignalSender
 from engine.pair_detector import PairDetector
 from engine.signal_storage import SignalEngine
 from aiogram import Bot
+from bot.keyboards import main_menu
+from storage.user_storage import UserStorage
+from aiogram.types import CallbackQuery
 
 router = Router()
 
